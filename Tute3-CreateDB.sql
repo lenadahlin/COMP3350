@@ -1,7 +1,7 @@
-DROP TABLE IF EXISTS Student --
-DROP TABLE IF EXISTS Course --
-DROP TABLE IF EXISTS Semester --
 DROP TABLE IF EXISTS Register --
+DROP TABLE IF EXISTS Semester --
+DROP TABLE IF EXISTS Course --
+DROP TABLE IF EXISTS Student --
 
 CREATE TABLE Student(
     stdNo CHAR(5) PRIMARY KEY,
@@ -12,31 +12,28 @@ CREATE TABLE Student(
 ) CREATE TABLE Course (
     courseID CHAR(8) PRIMARY KEY,
     cName VARCHAR(25),
-    credits INT CHECK (
-        credits >= 0
-        AND credits <= 100
-    ) DEFAULT '20',
+    credits INT CHECK (credits BETWEEN 0 AND 200)
+         DEFAULT '20',
     assumedKnowledge CHAR(8),
     FOREIGN KEY (assumedKnowledge) REFERENCES Course(courseID) ON UPDATE NO ACTION ON DELETE NO ACTION
 ) CREATE TABLE Semester (
-    semesterID INT PRIMARY KEY CHECK (semesterID > 0),
+    semesterID INT PRIMARY KEY CHECK (semesterID >= 0),
     semester INT CHECK (
-        semester >= 1
-        AND semester <= 4
+        semester BETWEEN 1 AND 4
     ),
     year INT CHECK (
-        year >= 2000
-        AND year <= 9999
+        year BETWEEN 2000 AND 9999
     )
 ) CREATE TABLE Register (
     stdNo CHAR(5), 
     courseID CHAR(8),
     semesterID INT,
     grade CHAR(2),
-    mark DECIMAL(5,2) CHECK (mark >= 0 AND mark <= 100) DEFAULT '0.0',
+    mark DECIMAL(5,2) CHECK (mark BETWEEN 0 AND 100) DEFAULT '0.0',
     PRIMARY KEY(stdNo, courseID, semesterID),
     FOREIGN KEY (stdNo) REFERENCES Student(stdNo) ON UPDATE CASCADE ON DELETE NO ACTION,
     FOREIGN KEY (courseID) REFERENCES Course(courseID) ON UPDATE CASCADE ON DELETE NO ACTION,
     FOREIGN KEY (semesterID) REFERENCES Semester(semesterID) ON UPDATE CASCADE ON DELETE NO ACTION
     )
 
+GO
