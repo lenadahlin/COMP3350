@@ -14,7 +14,7 @@ CREATE TABLE Student(
     cName VARCHAR(25),
     credits INT CHECK (credits BETWEEN 0 AND 200)
          DEFAULT '20',
-    assumedKnowledge CHAR(8),
+    assumedKnowledge CHAR(8),   
     FOREIGN KEY (assumedKnowledge) REFERENCES Course(courseID) ON UPDATE NO ACTION ON DELETE NO ACTION
 ) CREATE TABLE Semester (
     semesterID INT PRIMARY KEY CHECK (semesterID >= 0),
