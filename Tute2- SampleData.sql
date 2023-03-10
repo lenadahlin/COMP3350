@@ -45,10 +45,13 @@ VALUES
     (2, 2, 2006),
     (3, 1, 2007);
 
-INSERT INTO Register VALUES (
-    'S0001',
-    'INFT2040',
-    1,
-    'A',
-    98.02
-);
+INSERT INTO
+    Register
+VALUES
+    (
+        'S0001',
+        'INFT2040',
+        1,
+        'A',
+        98.02
+    );
