@@ -215,11 +215,10 @@ GO
 
 --Payment table
 CREATE TABLE Payment(
-    paymentID VARCHAR(10),
-    reservationID VARCHAR(10), 
-    amount SMALLMONEY,
-    paymentMethod VARCHAR(20),
-    datePaid DATETIME DEFAULT GETDATE(),
+    paymentID VARCHAR(10) NOT NULL,
+    reservationID VARCHAR(10) NOT NULL, 
+    amount SMALLMONEY NOT NULL,
+    datePaid DATETIME DEFAULT GETDATE() NOT NULL,
     PRIMARY KEY (paymentID),
     FOREIGN KEY (reservationID) REFERENCES Reservation(reservationID) ON UPDATE NO ACTION ON DELETE NO ACTION
 );
