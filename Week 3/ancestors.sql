@@ -1,3 +1,4 @@
+-- Lena Dahlin c3391146
 DROP TABLE IF EXISTS Person
 GO
     CREATE TABLE Person (

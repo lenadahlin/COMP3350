@@ -1,3 +1,4 @@
+-- Lena Dahlin c3391146
 -- a. Print  all  student  information  (i.e.  information  in  the  student  table).  
 --    Call  your stored procedure usp_getStudentInfo.
 
