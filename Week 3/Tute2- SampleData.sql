@@ -43,7 +43,8 @@ INSERT INTO
 VALUES
     (1, 1, 2006),
     (2, 2, 2006),
-    (3, 1, 2007);
+    (3, 1, 2007),
+    (4, 3, 2010);
 
 INSERT INTO
     Register
