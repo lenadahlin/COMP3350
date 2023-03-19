@@ -119,33 +119,89 @@ VALUES
     );
 
 
+DROP TYPE registerType
 
--- d. Create  a  stored  procedure  called  usp_RegisterForCourse  which  takes  as  input  a table-valued parameter (TVP) 
-
--- Create a type which is a table
 CREATE TYPE registerType AS TABLE 
 (
 stdNo CHAR(5),
 courseID CHAR(8),
 semesterID INT,
-grade CHAR(2),
-mark DECIMAL(5,2),
 PRIMARY KEY (stdNo))
 GO
 
 -- creates the procedure to use the TVP to insert to Register
-CREATE PROCEDURE RegisterForCourses @newRegister registerType READONLY
+
+CREATE PROCEDURE RegisterForCourses 
+    @newRegister registerType READONLY
 AS
 BEGIN
-	INSERT INTO Register(stdNo, courseID, semesterID, grade, mark)
-	SELECT stdNo, courseID, semesterID, grade, mark
-	FROM @newRegister
+    BEGIN TRY
+        -- Insert the TVP data into the register table
+        INSERT INTO Register (stdNo, courseID, semesterID)
+        SELECT stdNo, courseID, semesterID
+        FROM @newRegister n
+    END TRY
+    BEGIN CATCH
+        -- Raise a warning for any failed rows
+        DECLARE @errorMessage NVARCHAR(4000) = 'Error inserting row: (' + 
+            CONVERT(VARCHAR(5), ERROR_NUMBER()) + ') ' + ERROR_MESSAGE()
+        RAISERROR(@errorMessage, 16, 1) WITH NOWAIT
+    END CATCH
 END
 
+----
+
+DROP PROCEDURE RegisterForCourses
+
+select * from Register
+
 DECLARE @rList registerType -- declares variable
+--errors
 
-INSERT INTO @rList VALUES ('S0001', 'INFT4001', 3, 'A', 90.10)
-INSERT INTO @rList VALUES ('S0210', 'INFT4001', 3, 'C', 60.89)
+INSERT INTO @rList VALUES ('S0001', 'INFT2040', 1)
+INSERT INTO @rList VALUES ('S0210', 'INFT4001', 3)
 
+--no errors
+/*
+INSERT INTO @rList VALUES ('S0001', 'INFT4001', 3)
+INSERT INTO @rList VALUES ('S0210', 'INFT4001', 3)
+*/
 EXECUTE RegisterForCourses @rList
 GO
+
+
+---
+CREATE PROCEDURE RegisterForCourses 
+@newRegister registerType READONLY
+    AS
+    BEGIN
+    DECLARE @stdNo CHAR(5)
+    DECLARE @courseId CHAR(8)
+    DECLARE @semesterID INT
+
+    DECLARE RegisterCursor CURSOR FOR  
+            SELECT stdNo, courseID, semesterID
+            FROM @newRegister n
+
+    OPEN RegisterCursor   
+    FETCH NEXT FROM RegisterCursor INTO @stdNo, @courseId, @semesterID    
+
+    WHILE @@FETCH_STATUS = 0   
+    BEGIN   
+        BEGIN TRY
+        -- insert data into your table using variables
+        INSERT INTO Register (stdNo, courseID, semesterID)
+        VALUES (@stdNo, @courseId, @semesterID)
+        END TRY
+        BEGIN CATCH
+            -- Raise a warning for any failed rows
+            DECLARE @errorMessage NVARCHAR(4000) = 'Error inserting row: (' + 
+                CONVERT(VARCHAR(5), ERROR_NUMBER()) + ') ' + ERROR_MESSAGE()
+            RAISERROR(@errorMessage, 16, 1) WITH NOWAIT
+        END CATCH
+        -- fetch next row from cursor
+        FETCH NEXT FROM RegisterCursor INTO @stdNo, @courseId, @semesterID    
+    END
+    CLOSE RegisterCursor   
+    DEALLOCATE RegisterCursor
+END

@@ -130,6 +130,7 @@ GO
 CREATE TABLE PackageServiceItem(
     packageID VARCHAR(10), 
     serviceID VARCHAR(10),
+    quantity INT,
     PRIMARY KEY (packageID, serviceID),
     FOREIGN KEY (packageID) REFERENCES Package(packageID) ON UPDATE NO ACTION ON DELETE NO ACTION,
     FOREIGN KEY (serviceID) REFERENCES ServiceItem(serviceID) ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -281,13 +282,15 @@ INSERT INTO Package VALUES
 GO
 
 INSERT INTO PackageServiceItem VALUES
-('P001','SI00001'),
-('P001','SI10001'),
-('P002','SI10001'),
-('P002','SI00002'),
-('P003','SI10002'),
-('P003','SI00001'),
-('P003','SI00002');
+('P001','SI00001', 5), --should we make this 10 because its 2 people?
+('P001','SI10001', 5),
+('P002','SI10001', 5),
+('P002','SI00002', 5),
+('P003','SI10002', 5),
+('P003','SI00001', 5),
+('P003','SI00002', 5),
+('P004','SI00002', 1);
+
 GO
 
 
