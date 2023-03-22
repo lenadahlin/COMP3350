@@ -24,7 +24,7 @@ GO
 
 --hotel table 
 CREATE TABLE Hotel(
-    hotelID VARCHAR(10), 
+    hotelID CHAR(3), 
     name VARCHAR(30) NOT NULL UNIQUE, 
     phone VARCHAR(10) NOT NULL, 
     description VARCHAR(100),
@@ -35,7 +35,7 @@ GO
 
 --hotel address table
 CREATE TABLE HotelAddress (
-    hotelID VARCHAR(10),
+    hotelID CHAR(3),
     streetNo INT NOT NULL,
     streetName VARCHAR(100) NOT NULL,
     city VARCHAR(100) NOT NULL,
@@ -50,7 +50,7 @@ GO
 
 --facility type table 
 CREATE TABLE FacilityType(
-    facilityTypeID VARCHAR(10), 
+    facilityTypeID CHAR(7), 
     name VARCHAR(30) NOT NULL, 
     description VARCHAR(100) NOT NULL,
     capacity INT,
@@ -61,12 +61,12 @@ GO
 
 --facility table
 CREATE TABLE Facility(
-    facilityID VARCHAR(10),
-    hotelID VARCHAR(10) NOT NULL,
+    facilityID CHAR(9),
+    hotelID CHAR(3) NOT NULL,
     name VARCHAR(30) NOT NULL,
     description VARCHAR(100) NOT NULL,
     status VARCHAR(10) NOT NULL,
-    facilityTypeID VARCHAR(10) NOT NULL, 
+    facilityTypeID CHAR(7) NOT NULL, 
     PRIMARY KEY(facilityID),
     FOREIGN KEY (facilityTypeID) REFERENCES FacilityType(facilityTypeID) ON UPDATE NO ACTION ON DELETE NO ACTION,
     FOREIGN KEY (hotelID) REFERENCES Hotel(hotelID) ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -75,7 +75,7 @@ GO
 
 --service category table
 CREATE TABLE ServiceCategory(
-    categoryID VARCHAR(10), 
+    categoryID CHAR(5), 
     name VARCHAR(30) NOT NULL UNIQUE, 
     description VARCHAR(100), 
     type VARCHAR(10) NOT NULL,
@@ -86,8 +86,8 @@ GO
 
 --service item table
 CREATE TABLE ServiceItem(
-    serviceID VARCHAR(10),
-    categoryID VARCHAR(10), 
+    serviceID CHAR(7),
+    categoryID CHAR(5), 
     name VARCHAR(30) NOT NULL,
     description VARCHAR(100) NOT NULL,
     restrictions VARCHAR(100) NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE ServiceItem(
     baseCost SMALLMONEY NOT NULL,
     baseCurrency VARCHAR(20) NOT NULL,
     capacity INT,
-    facilityID VARCHAR(10),
+    facilityID CHAR(9),
     PRIMARY KEY (serviceID),
     FOREIGN KEY (facilityID) REFERENCES Facility(facilityID) ON UPDATE NO ACTION ON DELETE NO ACTION,
     FOREIGN KEY (categoryID) REFERENCES ServiceCategory(categoryID) ON UPDATE CASCADE ON DELETE NO ACTION
@@ -108,7 +108,7 @@ GO
 
 --package table 
 CREATE TABLE Package(
-    packageID VARCHAR(10), 
+    packageID CHAR(10), 
     name VARCHAR(30) NOT NULL, 
     description VARCHAR(100),
     startDate DATETIME NOT NULL,
@@ -117,7 +117,7 @@ CREATE TABLE Package(
     advCurrency VARCHAR(20) NOT NULL,
     inclusions VARCHAR(100), 
     exclusions VARCHAR(100),
-    status VARCHAR(10) NOT NULL,  
+    status VARCHAR(10),  
     gracePeriod VARCHAR(10),
     empName VARCHAR(30) NOT NULL,
     PRIMARY KEY(packageID),
@@ -128,8 +128,8 @@ GO
 
 --PackageServiceItem table
 CREATE TABLE PackageServiceItem(
-    packageID VARCHAR(10), 
-    serviceID VARCHAR(10),
+    packageID CHAR(10), 
+    serviceID CHAR(7),
     quantity INT,
     PRIMARY KEY (packageID, serviceID),
     FOREIGN KEY (packageID) REFERENCES Package(packageID) ON UPDATE NO ACTION ON DELETE NO ACTION,
@@ -140,7 +140,7 @@ GO
 
 --customer table 
 CREATE TABLE Customer(
-    customerID VARCHAR(10), 
+    customerID CHAR(10), 
     name VARCHAR(30) NOT NULL, 
     phone VARCHAR(10) NOT NULL, 
     email VARCHAR(30) NOT NULL,
@@ -151,9 +151,9 @@ GO
 
 --customer adress table 
 CREATE TABLE CustomerAddress(
-    customerID VARCHAR(10), 
+    customerID CHAR(10), 
     streetNo VARCHAR(10) NOT NULL, 
-    streetName VARCHAR(20) NOT NULL,
+    streetName VARCHAR(40) NOT NULL,
     city VARCHAR(30) NOT NULL, 
     postcode VARCHAR(10) NOT NULL, 
     country VARCHAR(30) NOT NULL, 
@@ -165,8 +165,9 @@ GO
 
 --Reservation table
 CREATE TABLE Reservation(
-    reservationID VARCHAR(10),
-    customerID VARCHAR(10) NOT NULL,
+    reservationID CHAR(10),
+    customerID CHAR(10) NOT NULL,
+    totalPrice SMALLMONEY,
     paymentStatus VARCHAR(30) NOT NULL DEFAULT 'Deposit Paid', 
     PRIMARY KEY (reservationID),
     FOREIGN KEY (customerID) REFERENCES Customer(customerID) ON UPDATE CASCADE ON DELETE NO ACTION
@@ -176,8 +177,8 @@ GO
 
 --reservation guest table 
 CREATE TABLE ReservationGuest(
-    reservationID VARCHAR(10), 
-    guestID VARCHAR(10), 
+    reservationID CHAR(10), 
+    guestID CHAR(4), 
     name VARCHAR(30) NOT NULL, 
     phone VARCHAR(10) NOT NULL, 
     email VARCHAR(30) NOT NULL, 
@@ -194,8 +195,8 @@ GO
 
 --Booking table
 CREATE TABLE Booking(
-    reservationID VARCHAR(10),
-    packageID VARCHAR(10), 
+    reservationID CHAR(10),
+    packageID CHAR(10), 
     qtyBooked INT NOT NULL,
     startDate DATETIME NOT NULL,
     endDate DATETIME NOT NULL,
@@ -207,7 +208,7 @@ CREATE TABLE Booking(
 GO
 --Discount table
 CREATE TABLE Discount(
-    reservationID VARCHAR(10),
+    reservationID CHAR(10),
     discount INT CHECK (discount <= 1) NOT NULL, --percentage discount
     employee VARCHAR(50) NOT NULL,
     authorizationStatus VARCHAR(50),
@@ -220,8 +221,8 @@ GO
 
 --Payment table
 CREATE TABLE Payment(
-    paymentID VARCHAR(10) NOT NULL,
-    reservationID VARCHAR(10) NOT NULL, 
+    paymentID CHAR(6) NOT NULL,
+    reservationID CHAR(10) NOT NULL, 
     amount SMALLMONEY NOT NULL,
     datePaid DATETIME DEFAULT GETDATE() NOT NULL,
     PRIMARY KEY (paymentID),
@@ -275,21 +276,21 @@ INSERT INTO ServiceItem VALUES
 GO
 
 INSERT INTO Package VALUES
-('P001','awesome package','a standard room with breakfast','2023-01-20','2023-06-20',300,'AUD','Standard room and a breakfast','excludes laundry','available','5 days','Keanu'),
-('P002','Room and dinner','a standard room with dinner','2023-02-10','2023-06-10',278,'AUD','Standard room and dinner','excludes breakfast','available','5 days','John'),
-('P003','Bed,Breakfast and dinner','a standard room with breakfast and dinner','2023-02-28','2023-06-30',400,'AUD','Standard room, breakfast and dinner','excludes laundry','available','5 days','Thomas'),
-('P004','dinner','dinner','2023-02-28','2023-06-30',60,'AUD','3 course dinner','excludes alcohol','available','1 days','Tom');
+('P000000001','awesome package','a standard room with breakfast','2023-01-20','2023-06-20',300,'AUD','Standard room and a breakfast','excludes laundry','available','5 days','Keanu'),
+('P000000002','Room and dinner','a standard room with dinner','2023-02-10','2023-06-10',278,'AUD','Standard room and dinner','excludes breakfast','available','5 days','John'),
+('P000000003','Bed,Breakfast and dinner','a standard room with breakfast and dinner','2023-02-28','2023-06-30',400,'AUD','Standard room, breakfast and dinner','excludes laundry','available','5 days','Thomas'),
+('P000000004','dinner','dinner','2023-02-28','2023-06-30',60,'AUD','3 course dinner','excludes alcohol','available','1 days','Tom');
 GO
 
 INSERT INTO PackageServiceItem VALUES
-('P001','SI00001', 5), --should we make this 10 because its 2 people?
-('P001','SI10001', 5),
-('P002','SI10001', 5),
-('P002','SI00002', 5),
-('P003','SI10002', 5),
-('P003','SI00001', 5),
-('P003','SI00002', 5),
-('P004','SI00002', 1);
+('P000000001','SI00001', 5), --should we make this 10 because its 2 people?
+('P000000001','SI10001', 5),
+('P000000002','SI10001', 5),
+('P000000002','SI00002', 5),
+('P000000003','SI10002', 5),
+('P000000003','SI00001', 5),
+('P000000003','SI00002', 5),
+('P000000004','SI00002', 1);
 
 GO
 
@@ -307,34 +308,34 @@ INSERT INTO CustomerAddress VALUES
 GO
 
 INSERT INTO Reservation VALUES
-('R001','C000000001','Paid in full'),
-('R002','C000000002', 'Paid in full'),
-('R003','C000000003', DEFAULT);
+('R000000001','C000000001', 300,'Paid in full'),
+('R000000002','C000000002', 278,'Paid in full'),
+('R000000003','C000000003', 700,DEFAULT);
 GO
 
 INSERT INTO ReservationGuest VALUES
-('R001','G001','Rhea Ripley','0415987365','mami@gmail.com','23','easy street','2095','melbourne','Australia'),
-('R002','G002','Bayley Martinez','0415974563','bayley@gmail.com','10','glass avenue','4675','newcastle','Australia'),
-('R003','G003','Ronda Rousey','0450196548','ronda@gmail.com','15','cool close','dubbo','7464','Australia');
+('R000000001','G001','Rhea Ripley','0415987365','mami@gmail.com','23','easy street','2095','melbourne','Australia'),
+('R000000002','G002','Bayley Martinez','0415974563','bayley@gmail.com','10','glass avenue','4675','newcastle','Australia'),
+('R000000003','G003','Ronda Rousey','0450196548','ronda@gmail.com','15','cool close','dubbo','7464','Australia');
 GO
 
 INSERT INTO Booking VALUES
-('R001','P001',1,'2023-01-22','2023-01-27'),
-('R002','P002',1,'2023-02-15','2023-02-20'),
-('R003','P003',1,'2023-03-22','2023-03-23'),
-('R003','P001',1,'2023-03-22','2023-03-23');
+('R000000001','P000000001',1,'2023-01-22','2023-01-27'),
+('R000000002','P000000002',1,'2023-02-15','2023-02-20'),
+('R000000003','P000000003',1,'2023-03-22','2023-03-23'),
+('R000000003','P000000001',1,'2023-03-22','2023-03-23');
 GO
 
 INSERT INTO Discount VALUES 
-('R001', 0.05, 'Greg', NULL),
-('R002', 0.26, 'Janet', 'Authorized');
+('R000000001', 0.05, 'Greg', NULL),
+('R000000002', 0.26, 'Janet', 'Authorized');
 GO
 
 
 INSERT INTO Payment VALUES
-('PA0001', 'R001', 75, '2023-01-10 11:05:12'),
-('PA0002', 'R001', 210, '2023-01-27 09:50:10'),
-('PA0003', 'R002', 69.5 , '2023-02-20 09:42:19'),
-('PA0004', 'R002', 171.58 , '2023-02-05 14:42:19'),
-('PA0005', 'R003', 100, '2023-03-21 20:10:22');
+('PA0001', 'R000000001', 75, '2023-01-10 11:05:12'),
+('PA0002', 'R000000001', 210, '2023-01-27 09:50:10'),
+('PA0003', 'R000000002', 69.5 , '2023-02-20 09:42:19'),
+('PA0004', 'R000000002', 171.58 , '2023-02-05 14:42:19'),
+('PA0005', 'R000000003', 100, '2023-03-21 20:10:22');
 GO
