@@ -66,3 +66,7 @@ END
 
 --output is reservationID 
 PRINT 'Reservation ID is = ' + @newResID
+
+
+
+

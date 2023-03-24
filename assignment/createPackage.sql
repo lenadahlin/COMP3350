@@ -2,11 +2,13 @@
    Task: Assignment 1 Create Package stored procedure
    Date Created: 18/03/2023 Last updated: 22/03/2023
 */
-
-
-
 --DROP PROCEDURE IF EXISTS usp_createPackage
-
+-- Create the service list table
+CREATE TYPE ServiceList AS TABLE(
+    serviceID VARCHAR(10),
+    quantity INT
+)
+GO
 --Create procedure that creates packages 
 CREATE PROCEDURE usp_createPackage @PackageName VARCHAR(30), 
 @ServiceItems ServiceList READONLY,
@@ -22,8 +24,6 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION
             --ERROR CHECKING
-
-
             -- Checks that Start date is before the end date
             IF @StartDate > @EndDate
                 BEGIN
@@ -72,8 +72,6 @@ BEGIN
         ROLLBACK TRANSACTION
     END CATCH
 END
-
-
 -- Correct test
 DECLARE @services ServiceList
 DECLARE @NewPackageID CHAR(10)
