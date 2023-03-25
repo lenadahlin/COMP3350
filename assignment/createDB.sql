@@ -95,7 +95,7 @@ CREATE TABLE ServiceItem(
     comments VARCHAR(100),
     openTime TIME,
     closeTime TIME,
-    baseCost SMALLMONEY NOT NULL,
+    baseCost MONEY NOT NULL,
     baseCurrency VARCHAR(20) NOT NULL,
     capacity INT,
     facilityID CHAR(9),
@@ -113,7 +113,7 @@ CREATE TABLE Package(
     description VARCHAR(100),
     startDate DATETIME NOT NULL,
     endDate DATETIME NOT NULL,
-    advPrice SMALLMONEY NOT NULL,
+    advPrice MONEY NOT NULL,
     advCurrency VARCHAR(20) NOT NULL,
     inclusions VARCHAR(100), 
     exclusions VARCHAR(100),
@@ -167,7 +167,7 @@ GO
 CREATE TABLE Reservation(
     reservationID CHAR(10),
     customerID CHAR(10) NOT NULL,
-    totalPrice SMALLMONEY,
+    totalPrice MONEY,
     paymentStatus VARCHAR(30) NOT NULL DEFAULT 'Deposit Paid', 
     PRIMARY KEY (reservationID),
     FOREIGN KEY (customerID) REFERENCES Customer(customerID) ON UPDATE CASCADE ON DELETE NO ACTION
@@ -209,12 +209,12 @@ GO
 --Discount table
 CREATE TABLE Discount(
     reservationID CHAR(10),
-    discount INT CHECK (discount <= 1) NOT NULL, --percentage discount
+    discount DECIMAL(5,2) CHECK (discount <= 100) NOT NULL, --percentage discount
     employee VARCHAR(50) NOT NULL,
     authorizationStatus VARCHAR(50),
     PRIMARY KEY (reservationID),
     FOREIGN KEY (reservationID) REFERENCES Reservation(reservationID) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT CheckAuthorization CHECK ((discount > 0.25 AND authorizationStatus IS NOT NULL) OR (discount <=0.25))
+    CONSTRAINT CheckAuthorization CHECK ((discount > 25 AND authorizationStatus IS NOT NULL) OR (discount <= 25))
 ); 
 
 GO
@@ -223,7 +223,7 @@ GO
 CREATE TABLE Payment(
     paymentID CHAR(6) NOT NULL,
     reservationID CHAR(10) NOT NULL, 
-    amount SMALLMONEY NOT NULL,
+    amount MONEY NOT NULL,
     datePaid DATETIME DEFAULT GETDATE() NOT NULL,
     PRIMARY KEY (paymentID),
     FOREIGN KEY (reservationID) REFERENCES Reservation(reservationID) ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -327,8 +327,8 @@ INSERT INTO Booking VALUES
 GO
 
 INSERT INTO Discount VALUES 
-('R000000001', 0.05, 'Greg', NULL),
-('R000000002', 0.26, 'Janet', 'Authorized');
+('R000000001', 5, 'Greg', NULL),
+('R000000002', 26, 'Janet', 'Authorized');
 GO
 
 
