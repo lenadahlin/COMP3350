@@ -15,7 +15,7 @@ CREATE PROCEDURE usp_createPackage @PackageName VARCHAR(30),
 @Description VARCHAR(100),
 @StartDate DATETIME,
 @EndDate DATETIME,
-@AdvPrice SMALLMONEY,
+@AdvPrice MONEY,
 @AdvCurrency VARCHAR(20),
 @Employee VARCHAR(30),
 @NewPackageID CHAR(10) OUTPUT
