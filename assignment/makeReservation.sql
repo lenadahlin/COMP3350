@@ -2,8 +2,10 @@
    Task: Assignment 1 Create Package stored procedure
    Date Created: 18/03/2023 Last updated: 26/03/2023
 */
-
---DROP PROCEDURE IF EXISTS usp_makeReservation 
+-- Drop procedures + types
+DROP PROCEDURE IF EXISTS usp_makeReservation 
+DROP TYPE IF EXISTS bookedPackages 
+DROP TYPE IF EXISTS guestList
 --creating a type bookedPackages 
 CREATE TYPE bookedPackages AS TABLE(
     packageID CHAR(10),
@@ -11,7 +13,7 @@ CREATE TYPE bookedPackages AS TABLE(
     startDate DATETIME,
     endDate DATETIME
 )
-go
+GO
 --creating guest list type
 CREATE TYPE guestList AS TABLE(
     name VARCHAR(30),
@@ -23,7 +25,7 @@ CREATE TYPE guestList AS TABLE(
     postcode VARCHAR(10), 
     country VARCHAR(30)
 ) 
-go
+GO
 
 CREATE PROCEDURE usp_makeReservation 
 @bookedPackages bookedPackages READONLY, 
@@ -77,6 +79,104 @@ BEGIN
     END
     CLOSE AdvertisedDates   
     DEALLOCATE AdvertisedDates
+    -- Check that the quantity of a package is greater than 0
+    BEGIN TRY
+    BEGIN TRANSACTION
+    IF EXISTS( SELECT *
+                FROM @bookedPackages
+                WHERE qtyBooked < 1)
+    BEGIN
+                DECLARE @negativeQty NVARCHAR(100) = 'Package quantity must be greater than 0'
+                RAISERROR (@negativeQty, 11, 1) WITH NOWAIT;
+    END
+    COMMIT TRANSACTION
+    END TRY
+    BEGIN CATCH
+        SELECT ERROR_MESSAGE() AS ErrorMessage,
+            ERROR_SEVERITY() AS ErrorSeverity,
+            ERROR_STATE() AS ErrorState
+            ROLLBACK TRANSACTION
+    END CATCH
+    -- Check the qtyBooked is less than the capacity available 
+    DECLARE CheckCapacity CURSOR FOR 
+    SELECT bp.packageID, bp.qtyBooked, bp.startDate, bp.endDate 
+    FROM @bookedPackages bp
+
+    DECLARE @currentpackageID CHAR(10);
+    DECLARE @currentDate DATE;
+    DECLARE @capacity INT;
+    DECLARE @serviceID CHAR(7);
+    DECLARE @qtyBooked INT;
+    DECLARE @currBooking INT;
+
+    OPEN CheckCapacity;
+    FETCH NEXT FROM CheckCapacity INTO @packageID, @qtyBooked, @startDate, @endDate;  
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN 
+        DECLARE serviceItems CURSOR FOR 
+            SELECT psi.serviceID
+            FROM PackageServiceItem psi 
+            WHERE psi.packageID = @packageID
+        
+        OPEN serviceItems;
+        FETCH NEXT FROM serviceItems INTO @serviceID;
+
+        WHILE @@FETCH_STATUS = 0 
+        BEGIN 
+    --         Loop through each date from start to end date 
+            SET @currentDate = @startDate
+            WHILE @currentDate <= @endDate
+            BEGIN   
+    --             Get the capacity
+                SELECT @capacity = capacity 
+                FROM ServiceItem s
+                WHERE s.serviceID = @serviceID
+    --             subtract any existing bookings
+                SELECT @qtyBooked = ISNULL(SUM(b.qtyBooked), 0)
+                FROM Booking b
+                WHERE b.packageID = @packageID
+                AND b.startDate <= @currentDate
+                AND b.endDate >= @currentDate;
+
+                SET @capacity = @capacity - @qtyBooked;
+
+    --             subtract the booking we want to allocate throw error if capacity < 0
+                SELECT @currBooking = ISNULL(SUM(bp.qtyBooked), 0)
+                FROM @bookedPackages bp
+                WHERE bp.packageID = @packageID
+                AND bp.startDate <= @currentDate
+                AND bp.endDate >= @currentDate;
+
+                SET @capacity = @capacity - @currBooking;
+    
+    --             i need to RAISE ERROR if @Capacity is < 0
+                IF @capacity < 0
+                BEGIN
+                    DECLARE @errorCapacity NVARCHAR(500);
+                    SET @errorCapacity = 'Capacity for service item ' + CONVERT(NVARCHAR(10), @serviceID) 
+                        + ' on date ' + CONVERT(NVARCHAR(10), @currentDate) + ' is fully booked';
+                    RAISERROR(@errorCapacity, 11, 1);
+                    RETURN;
+                END;
+    --             Go to next day
+                SET @currentDate = DATEADD(day, 1, @currentDate);
+            END;
+
+            FETCH NEXT FROM serviceItems INTO @serviceID;
+        END;
+
+        CLOSE serviceItems;
+        DEALLOCATE serviceItems;
+
+        FETCH NEXT FROM CheckCapacity INTO @packageID, @qtyBooked, @startDate, @endDate;
+    END;
+
+    CLOSE CheckCapacity
+    DEALLOCATE CheckCapacity
+
+
+
     -- Set reservation ID
     SET @reservationID = CONCAT('R', ABS(CHECKSUM(NEWID())))
     WHILE EXISTS(SELECT * FROM Reservation WHERE reservationID = @reservationID)
@@ -99,6 +199,12 @@ BEGIN
     INSERT INTO Booking(reservationID, packageID, qtyBooked, startDate, endDate)
     SELECT @reservationID, packageID, qtyBooked, startDate, endDate
     FROM @bookedPackages
+    ---------------------------------------------
+    --Insert into Guest 
+    INSERT INTO ReservationGuest(reservationID, name, phone, email, streetNo, streetName, city, postcode, country)
+    SELECT @reservationID, name, phone, email, streetNo, streetName, city, postcode, country
+    FROM @guests
+
     -- Update the pricing in the reservation table 
     UPDATE Reservation 
     SET totalPrice = (
@@ -112,10 +218,10 @@ BEGIN
     SELECT @totalPrice = totalPrice * 0.25
     FROM Reservation
     WHERE reservationID = @reservationID
-    -- need to make payment ID an IDENTITY for this to work 
     INSERT INTO Payment VALUES (@reservationID, @totalPrice, GETDATE())
 END     
 
+-- TESTING
 
 /* Error for check to see if the dates booked for the package fall within the packages available dates 
 
@@ -129,16 +235,36 @@ INSERT INTO @guests VALUES ('John', '3123123', 'email@hi.com', '1', 'Bird Street
 
 EXECUTE usp_makeReservation @bookedPackages, @guests, 'Hanna', '1241241', 'hanna@email.com', '500', 'Bird Street', 'Bird City', '2315','Australia', @reservationID OUTPUT
 */
+/* Testing to get error for < 1 quantity booked
+DECLARE @bookedPackages bookedPackages
+DECLARE @guests guestList
+DECLARE @reservationID CHAR(10)
 
+INSERT INTO @bookedPackages VALUES ('P000000001', -1, '2023-04-21', '2023-04-26')
+INSERT INTO @guests VALUES ('John', '3123123', 'email@hi.com', '1', 'Bird Street', 'Bird City', '2315', 'Australia')
 
+EXECUTE usp_makeReservation @bookedPackages, @guests, 'Hanna', '1241241', 'hanna@email.com', '500', 'Bird Street', 'Bird City', '2315','Australia', @reservationID OUTPUT
+*/
+
+/* Testing to get error for not enough capacity
 DECLARE @bookedPackages bookedPackages
 DECLARE @guests guestList
 DECLARE @reservationID CHAR(10)
 
 INSERT INTO @bookedPackages VALUES ('P000000001', 1, '2023-04-21', '2023-04-26')
+INSERT INTO @bookedPackages VALUES ('P000000002', 200, '2023-04-21', '2023-04-26')
 INSERT INTO @guests VALUES ('John', '3123123', 'email@hi.com', '1', 'Bird Street', 'Bird City', '2315', 'Australia')
 
 
 EXECUTE usp_makeReservation @bookedPackages, @guests, 'Hanna', '1241241', 'hanna@email.com', '500', 'Bird Street', 'Bird City', '2315','Australia', @reservationID OUTPUT
+*/
 
-SELECT * From Reservation
+-- Correct test
+DECLARE @bookedPackages bookedPackages
+DECLARE @guests guestList
+DECLARE @reservationID CHAR(10)
+
+INSERT INTO @bookedPackages VALUES ('P000000001', 1, '2023-04-21', '2023-04-26')
+INSERT INTO @bookedPackages VALUES ('P000000002', 1, '2023-04-21', '2023-04-26')
+
+EXECUTE usp_makeReservation @bookedPackages, @guests, 'Hanna', '1241241', 'hanna@email.com', '500', 'Bird Street', 'Bird City', '2315','Australia', @reservationID OUTPUT

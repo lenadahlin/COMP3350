@@ -2,7 +2,9 @@
    Task: Assignment 1 Create Package stored procedure
    Date Created: 18/03/2023 Last updated: 22/03/2023
 */
---DROP PROCEDURE IF EXISTS usp_createPackage
+-- Drop procedures + type
+DROP PROCEDURE IF EXISTS usp_createPackage
+DROP TYPE IF EXISTS ServiceList
 -- Create the service list table
 CREATE TYPE ServiceList AS TABLE(
     serviceID VARCHAR(10),
@@ -66,60 +68,10 @@ BEGIN
         COMMIT TRANSACTION
     END TRY
     BEGIN CATCH
+    -- Show errors
     SELECT ERROR_MESSAGE() AS ErrorMessage,
     ERROR_SEVERITY() AS ErrorSeverity,
     ERROR_STATE() AS ErrorState
         ROLLBACK TRANSACTION
     END CATCH
 END
--- Correct test
-DECLARE @services ServiceList
-DECLARE @NewPackageID CHAR(10)
-
-INSERT INTO @services VALUES ('SI00001', 1)
-INSERT INTO @services VALUES ('SI00002', 3)
-
-EXECUTE usp_createPackage 'new package', @services, 'testing package', '2023-04-21', '2024-04-21', 500, 'AUD', 'John', @NewPackageID OUTPUT
-
-/*Duplicate Service Item testing
-
-DECLARE @services ServiceList
-DECLARE @NewPackageID CHAR(10)
-
-INSERT INTO @services VALUES ('SI00002', 1)
-INSERT INTO @services VALUES ('SI00002', 1)
-
-EXECUTE usp_createPackage 'new package', @services, 'testing package', '2023-04-21', '2024-04-21', 500, 'AUD', 'John', @NewPackageID OUTPUT
-
-*/
-/*0 quantity  Service Item testing
-
-DECLARE @services ServiceList
-DECLARE @NewPackageID CHAR(10)
-
-INSERT INTO @services VALUES ('SI00002', 0)
-
-EXECUTE usp_createPackage 'new package', @services, 'testing package', '2023-04-21', '2024-04-21', 500, 'AUD', 'John', @NewPackageID OUTPUT
-
-*/
-/*Service item doesn't exist testing
-
-DECLARE @services ServiceList
-DECLARE @NewPackageID CHAR(10)
-
-INSERT INTO @services VALUES ('SI00500', 1)
-
-EXECUTE usp_createPackage 'new package', @services, 'testing package', '2023-04-21', '2024-04-21', 500, 'AUD', 'John', @NewPackageID OUTPUT
-
-*/
-/*Start date after end date testing
-
-DECLARE @services ServiceList
-DECLARE @NewPackageID CHAR(10)
-
-INSERT INTO @services VALUES ('SI00002', 1)
-INSERT INTO @services VALUES ('SI00002', 1)
-
-EXECUTE usp_createPackage 'new package', @services, 'testing package', '2024-04-21', '2022-04-21', 500, 'AUD', 'John', @NewPackageID OUTPUT
-
-*/

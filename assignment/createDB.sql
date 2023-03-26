@@ -1,6 +1,6 @@
 /* Authors: Jessica McEwan C3393168, Lena Dahlin C3391146
    Task: Assignment 1 Hotel database Design 
-   Date Created: 11/03/2023 Last updated: ...
+   Date Created: 11/03/2023 Last updated: 26/03/2023
 */
 
 -- DROP TABLE statements
@@ -39,7 +39,7 @@ CREATE TABLE HotelAddress (
     streetNo INT NOT NULL,
     streetName VARCHAR(100) NOT NULL,
     city VARCHAR(100) NOT NULL,
-    postcode INT NOT NULL,
+    postcode VARCHAR(10) NOT NULL,
     country VARCHAR(100) NOT NULL,
     PRIMARY KEY(hotelID),
     FOREIGN KEY (hotelID) REFERENCES Hotel(hotelID) ON UPDATE CASCADE ON DELETE NO ACTION
@@ -178,7 +178,7 @@ GO
 --reservation guest table 
 CREATE TABLE ReservationGuest(
     reservationID CHAR(10), 
-    guestID CHAR(4), 
+    guestID INT IDENTITY(1,1), --auto increments unique value starting at 1 
     name VARCHAR(30) NOT NULL, 
     phone VARCHAR(10) NOT NULL, 
     email VARCHAR(30) NOT NULL, 
@@ -221,7 +221,7 @@ GO
 
 --Payment table
 CREATE TABLE Payment(
-    paymentID CHAR(6) NOT NULL,
+    paymentID INT IDENTITY(1,1), --auto increments unique value starting at 1
     reservationID CHAR(10) NOT NULL, 
     amount MONEY NOT NULL,
     datePaid DATETIME DEFAULT GETDATE() NOT NULL,
@@ -243,9 +243,9 @@ INSERT INTO Hotel VALUES
 ('003', 'The Cormorant Hotel', '6622485511', 'Luxury hotel in the center of town');
 GO
 INSERT INTO HotelAddress VALUES 
-('001', 20, 'King Street', 'Newcastle', 2400, 'Australia'),
-('002', 222, 'Margaret Street', 'Brisbane', 4000, 'Australia'),
-('003', 372, 'Thanon Si Ayutthaya', 'Bangkok', 10400, 'Thailand');
+('001', 20, 'King Street', 'Newcastle', '2400', 'Australia'),
+('002', 222, 'Margaret Street', 'Brisbane', '4000', 'Australia'),
+('003', 372, 'Thanon Si Ayutthaya', 'Bangkok', '10400', 'Thailand');
 GO
 
 
@@ -270,28 +270,27 @@ GO
 INSERT INTO ServiceItem VALUES
 ('SI00001', 'SC101', 'Breakfast', 'Buffet Breakfeast with coffee', '2 hour limit', NULL, NULL, '06:00', '10:00', 8.50, 'AUD', 15, 'FAC000010'),
 ('SI00002', 'SC101', 'Dinner', '3 course meal', 'Semi-formal dress', NULL, 'Takes approx 1 hour per person', '18:00', '21:00', 50, 'AUD', 10, 'FAC000010'),
-('SI10001', 'SC001', 'Standard Room', 'Overnight stay', 'No parties', NULL, NULL, '14:00', '10:00', 80, 'AUD', 2, 'FAC000002'),
+('SI10001', 'SC001', 'Standard Room', 'Overnight stay', 'No parties', NULL, NULL, '14:00', '10:00', 80, 'AUD', 10, 'FAC000002'),
 ('SI10002', 'SC001', 'Standard Room', 'Overnight stay', 'No parties', NULL, NULL, '14:00', '10:00', 80, 'AUD', 2, 'FAC000001');
 
 GO
 
 INSERT INTO Package VALUES
 ('P000000001','awesome package','a standard room with breakfast','2023-01-20','2023-06-20',300,'AUD','Standard room and a breakfast','excludes laundry','available','5 days','Keanu'),
-('P000000002','Room and dinner','a standard room with dinner','2023-02-10','2023-06-10',278,'AUD','Standard room and dinner','excludes breakfast','available','5 days','John'),
-('P000000003','Bed,Breakfast and dinner','a standard room with breakfast and dinner','2023-02-28','2023-06-30',400,'AUD','Standard room, breakfast and dinner','excludes laundry','available','5 days','Thomas'),
-('P000000004','dinner','dinner','2023-02-28','2023-06-30',60,'AUD','3 course dinner','excludes alcohol','available','1 days','Tom');
+('P000000002','Room and dinner daily','a standard room with dinner','2023-02-10','2023-06-10',278,'AUD','Standard room and dinner','excludes breakfast','available','5 days','John'),
+('P000000003','Bed,Breakfast and dinner daily','a standard room with breakfast and dinner','2023-02-28','2023-06-30',400,'AUD','Standard room, breakfast and dinner','excludes laundry','available','5 days','Thomas'),
+('P000000004','dinner daily','dinner','2023-02-28','2023-06-30',60,'AUD','3 course dinner','excludes alcohol','available','5 days','Tom');
 GO
 
 INSERT INTO PackageServiceItem VALUES
-('P000000001','SI00001', 5), --should we make this 10 because its 2 people?
-('P000000001','SI10001', 5),
-('P000000002','SI10001', 5),
-('P000000002','SI00002', 5),
-('P000000003','SI10002', 5),
-('P000000003','SI00001', 5),
-('P000000003','SI00002', 5),
+('P000000001','SI00001', 1),
+('P000000001','SI10001', 1),
+('P000000002','SI10001', 1),
+('P000000002','SI00002', 1),
+('P000000003','SI10002', 1),
+('P000000003','SI00001', 1),
+('P000000003','SI00002', 1),
 ('P000000004','SI00002', 1);
-
 GO
 
 
@@ -314,9 +313,9 @@ INSERT INTO Reservation VALUES
 GO
 
 INSERT INTO ReservationGuest VALUES
-('R000000001','G001','Rhea Ripley','0415987365','mami@gmail.com','23','easy street','2095','melbourne','Australia'),
-('R000000002','G002','Bayley Martinez','0415974563','bayley@gmail.com','10','glass avenue','4675','newcastle','Australia'),
-('R000000003','G003','Ronda Rousey','0450196548','ronda@gmail.com','15','cool close','dubbo','7464','Australia');
+('R000000001','Rhea Ripley','0415987365','mami@gmail.com','23','Easy Street','Melbourne','2095','Australia'),
+('R000000002','Bayley Martinez','0415974563','bayley@gmail.com','10','Glass Avenue','Newcastle','4675', 'Australia'),
+('R000000003','Ronda Rousey','0450196548','ronda@gmail.com','15','Cool Close', 'Dubbo', '7464','Australia');
 GO
 
 INSERT INTO Booking VALUES
@@ -333,9 +332,9 @@ GO
 
 
 INSERT INTO Payment VALUES
-('PA0001', 'R000000001', 75, '2023-01-10 11:05:12'),
-('PA0002', 'R000000001', 210, '2023-01-27 09:50:10'),
-('PA0003', 'R000000002', 69.5 , '2023-02-20 09:42:19'),
-('PA0004', 'R000000002', 171.58 , '2023-02-05 14:42:19'),
-('PA0005', 'R000000003', 100, '2023-03-21 20:10:22');
+('R000000001', 75, '2023-01-10 11:05:12'),
+('R000000001', 210, '2023-01-27 09:50:10'),
+('R000000002', 69.5 , '2023-02-20 09:42:19'),
+('R000000002', 171.58 , '2023-02-05 14:42:19'),
+('R000000003', 100, '2023-03-21 20:10:22');
 GO
