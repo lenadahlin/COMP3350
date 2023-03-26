@@ -4,7 +4,9 @@
 */
 -- Drop procedures + type
 DROP PROCEDURE IF EXISTS usp_createPackage
+GO
 DROP TYPE IF EXISTS ServiceList
+GO
 -- Create the service list table
 CREATE TYPE ServiceList AS TABLE(
     serviceID VARCHAR(10),

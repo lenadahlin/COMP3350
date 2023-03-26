@@ -1,11 +1,14 @@
 /* Authors: Jessica McEwan C3393168, Lena Dahlin C3391146
-   Task: Assignment 1 Create Package stored procedure
+   Task: Assignment 1 Make Reservation stored procedure
    Date Created: 18/03/2023 Last updated: 26/03/2023
 */
+
 -- Drop procedures + types
 DROP PROCEDURE IF EXISTS usp_makeReservation 
+GO
 DROP TYPE IF EXISTS bookedPackages 
 DROP TYPE IF EXISTS guestList
+GO
 --creating a type bookedPackages 
 CREATE TYPE bookedPackages AS TABLE(
     packageID CHAR(10),
@@ -42,6 +45,7 @@ CREATE PROCEDURE usp_makeReservation
 @reservationID CHAR(10) OUTPUT
 AS
 BEGIN 
+
     --check to see if the dates booked for the package fall within the packages available dates 
     DECLARE AdvertisedDates CURSOR FOR  
         SELECT bp.packageID, bp.startDate, bp.endDate
@@ -52,11 +56,10 @@ BEGIN
         @endDate DATETIME;
     OPEN AdvertisedDates   
     FETCH NEXT FROM AdvertisedDates INTO @packageID, @startDate, @endDate    
-
+    BEGIN TRY
     WHILE @@FETCH_STATUS = 0   
     BEGIN   
         --check to see if the dates booked for the package fall within the packages available dates 
-        BEGIN TRY
         BEGIN TRANSACTION
             IF NOT EXISTS (SELECT bp.packageID, bp.startDate, bp.endDate
             FROM @bookedPackages bp
@@ -67,16 +70,20 @@ BEGIN
                 RAISERROR (@errorDate, 16, 1) WITH NOWAIT;
             END
         COMMIT TRANSACTION
-        END TRY
-        BEGIN CATCH
-            SELECT ERROR_MESSAGE() AS ErrorMessage,
-            ERROR_SEVERITY() AS ErrorSeverity,
-            ERROR_STATE() AS ErrorState
-        ROLLBACK TRANSACTION
-        END CATCH
-        -- fetch next row from cursor
-        FETCH NEXT FROM AdvertisedDates INTO @packageID, @startDate, @endDate       
+         -- fetch next row from cursor
+        FETCH NEXT FROM AdvertisedDates INTO @packageID, @startDate, @endDate   
     END
+    END TRY
+    --error handling
+    BEGIN CATCH
+        SELECT ERROR_MESSAGE() AS ErrorMessage,
+        ERROR_SEVERITY() AS ErrorSeverity,
+        ERROR_STATE() AS ErrorState
+        ROLLBACK TRANSACTION
+        CLOSE AdvertisedDates
+        DEALLOCATE AdvertisedDates
+        RETURN 0
+    END CATCH
     CLOSE AdvertisedDates   
     DEALLOCATE AdvertisedDates
     -- Check that the quantity of a package is greater than 0
@@ -91,11 +98,13 @@ BEGIN
     END
     COMMIT TRANSACTION
     END TRY
+    --error handling
     BEGIN CATCH
         SELECT ERROR_MESSAGE() AS ErrorMessage,
-            ERROR_SEVERITY() AS ErrorSeverity,
-            ERROR_STATE() AS ErrorState
-            ROLLBACK TRANSACTION
+        ERROR_SEVERITY() AS ErrorSeverity,
+        ERROR_STATE() AS ErrorState
+        ROLLBACK TRANSACTION
+        RETURN 0
     END CATCH
     -- Check the qtyBooked is less than the capacity available 
     DECLARE CheckCapacity CURSOR FOR 
@@ -124,15 +133,15 @@ BEGIN
 
         WHILE @@FETCH_STATUS = 0 
         BEGIN 
-    --         Loop through each date from start to end date 
+            --Loop through each date from start to end date 
             SET @currentDate = @startDate
             WHILE @currentDate <= @endDate
             BEGIN   
-    --             Get the capacity
+                --Get the capacity
                 SELECT @capacity = capacity 
                 FROM ServiceItem s
                 WHERE s.serviceID = @serviceID
-    --             subtract any existing bookings
+                --subtract any existing bookings
                 SELECT @qtyBooked = ISNULL(SUM(b.qtyBooked), 0)
                 FROM Booking b
                 WHERE b.packageID = @packageID
@@ -141,7 +150,7 @@ BEGIN
 
                 SET @capacity = @capacity - @qtyBooked;
 
-    --             subtract the booking we want to allocate throw error if capacity < 0
+                --subtract the booking we want to allocate throw error if capacity < 0
                 SELECT @currBooking = ISNULL(SUM(bp.qtyBooked), 0)
                 FROM @bookedPackages bp
                 WHERE bp.packageID = @packageID
@@ -150,7 +159,7 @@ BEGIN
 
                 SET @capacity = @capacity - @currBooking;
     
-    --             i need to RAISE ERROR if @Capacity is < 0
+                --RAISEERROR if @Capacity is < 0
                 IF @capacity < 0
                 BEGIN
                     DECLARE @errorCapacity NVARCHAR(500);
@@ -159,16 +168,16 @@ BEGIN
                     RAISERROR(@errorCapacity, 11, 1);
                     RETURN;
                 END;
-    --             Go to next day
+                --Step forward one day in the date range
                 SET @currentDate = DATEADD(day, 1, @currentDate);
             END;
-
+            --fetch next service item 
             FETCH NEXT FROM serviceItems INTO @serviceID;
         END;
 
         CLOSE serviceItems;
         DEALLOCATE serviceItems;
-
+        --fetch next package
         FETCH NEXT FROM CheckCapacity INTO @packageID, @qtyBooked, @startDate, @endDate;
     END;
 
@@ -199,7 +208,6 @@ BEGIN
     INSERT INTO Booking(reservationID, packageID, qtyBooked, startDate, endDate)
     SELECT @reservationID, packageID, qtyBooked, startDate, endDate
     FROM @bookedPackages
-    ---------------------------------------------
     --Insert into Guest 
     INSERT INTO ReservationGuest(reservationID, name, phone, email, streetNo, streetName, city, postcode, country)
     SELECT @reservationID, name, phone, email, streetNo, streetName, city, postcode, country
@@ -213,58 +221,10 @@ BEGIN
     JOIN Package p ON b.packageID = p.packageID
     WHERE b.reservationID = @reservationID) WHERE reservationID = @reservationID
 
-    -- Create deposit in Payment
+    -- Create a payment for the deposit
     DECLARE @totalPrice DECIMAL(18, 2)
     SELECT @totalPrice = totalPrice * 0.25
     FROM Reservation
     WHERE reservationID = @reservationID
     INSERT INTO Payment VALUES (@reservationID, @totalPrice, GETDATE())
 END     
-
--- TESTING
-
-/* Error for check to see if the dates booked for the package fall within the packages available dates 
-
-DECLARE @bookedPackages bookedPackages
-DECLARE @guests guestList
-DECLARE @reservationID CHAR(10)
-
-INSERT INTO @bookedPackages VALUES ('P000000001', 1, '1997-04-21', '2000-04-25')
-INSERT INTO @guests VALUES ('John', '3123123', 'email@hi.com', '1', 'Bird Street', 'Bird City', '2315', 'Australia')
-
-
-EXECUTE usp_makeReservation @bookedPackages, @guests, 'Hanna', '1241241', 'hanna@email.com', '500', 'Bird Street', 'Bird City', '2315','Australia', @reservationID OUTPUT
-*/
-/* Testing to get error for < 1 quantity booked
-DECLARE @bookedPackages bookedPackages
-DECLARE @guests guestList
-DECLARE @reservationID CHAR(10)
-
-INSERT INTO @bookedPackages VALUES ('P000000001', -1, '2023-04-21', '2023-04-26')
-INSERT INTO @guests VALUES ('John', '3123123', 'email@hi.com', '1', 'Bird Street', 'Bird City', '2315', 'Australia')
-
-EXECUTE usp_makeReservation @bookedPackages, @guests, 'Hanna', '1241241', 'hanna@email.com', '500', 'Bird Street', 'Bird City', '2315','Australia', @reservationID OUTPUT
-*/
-
-/* Testing to get error for not enough capacity
-DECLARE @bookedPackages bookedPackages
-DECLARE @guests guestList
-DECLARE @reservationID CHAR(10)
-
-INSERT INTO @bookedPackages VALUES ('P000000001', 1, '2023-04-21', '2023-04-26')
-INSERT INTO @bookedPackages VALUES ('P000000002', 200, '2023-04-21', '2023-04-26')
-INSERT INTO @guests VALUES ('John', '3123123', 'email@hi.com', '1', 'Bird Street', 'Bird City', '2315', 'Australia')
-
-
-EXECUTE usp_makeReservation @bookedPackages, @guests, 'Hanna', '1241241', 'hanna@email.com', '500', 'Bird Street', 'Bird City', '2315','Australia', @reservationID OUTPUT
-*/
-
--- Correct test
-DECLARE @bookedPackages bookedPackages
-DECLARE @guests guestList
-DECLARE @reservationID CHAR(10)
-
-INSERT INTO @bookedPackages VALUES ('P000000001', 1, '2023-04-21', '2023-04-26')
-INSERT INTO @bookedPackages VALUES ('P000000002', 1, '2023-04-21', '2023-04-26')
-
-EXECUTE usp_makeReservation @bookedPackages, @guests, 'Hanna', '1241241', 'hanna@email.com', '500', 'Bird Street', 'Bird City', '2315','Australia', @reservationID OUTPUT
